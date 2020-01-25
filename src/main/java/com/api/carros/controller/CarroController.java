@@ -1,8 +1,13 @@
 package com.api.carros.controller;
 
+import java.net.URI;
 import java.util.List;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.Produces;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,8 +17,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.api.carros.model.Carro;
+import com.api.carros.model.dto.CarroDTO;
 import com.api.carros.service.CarroService;
 
 @RestController
@@ -24,37 +31,55 @@ public class CarroController {
 	public CarroService service;
 
 	@GetMapping()
-	public ResponseEntity<Iterable<Carro>> getCarros() {
+	@Produces(MediaType.APPLICATION_JSON_VALUE)
+	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<List<CarroDTO>> getCarros() {
 		return ResponseEntity.ok(service.getCarros());
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<Carro> getById(@PathVariable("id") Long id) {
+	@Produces(MediaType.APPLICATION_JSON_VALUE)
+	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<CarroDTO> getById(@PathVariable("id") Long id) {
 		return service.getById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
 	}
 
 	@GetMapping("/tipo/{tipo}")
-	public ResponseEntity<List<Carro>> getCarrosByTipo(@PathVariable("tipo") String tipo) {
-		List<Carro> carros = service.getCarrosByTipo(tipo);
+	@Produces(MediaType.APPLICATION_JSON_VALUE)
+	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<List<CarroDTO>> getCarrosByTipo(@PathVariable("tipo") String tipo) {
+		List<CarroDTO> carros = service.getCarrosByTipo(tipo);
 		return carros.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(carros);
 	}
 
 	@PostMapping
-	public String post(@RequestBody Carro carro) {
-		Carro c = service.save(carro);
-		return "Carro salvo com sucesso, ID: " + c.getId();
+	@Produces(MediaType.APPLICATION_JSON_VALUE)
+	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity post(@RequestBody Carro carro) {
+		try {
+			CarroDTO carroDTO = service.save(carro);
+			URI location = getURL(carroDTO.getId());
+			return ResponseEntity.created(location).build();
+		} catch (Exception e) {
+			return ResponseEntity.badRequest().build();
+		}
+	}
+
+	private URI getURL(Long id) {
+		return ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id).toUri();
 	}
 
 	@PutMapping("/{id}")
-	public Carro put(@PathVariable("id") Long id, @RequestBody Carro carro) {
-		System.out.println(carro.getNome());
-		System.out.println(id);
-		return service.update(id, carro);
+	@Produces(MediaType.APPLICATION_JSON_VALUE)
+	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity put(@PathVariable("id") Long id, @RequestBody Carro carro) {
+		CarroDTO carroDTO = service.update(id, carro);
+		return carroDTO != null ? ResponseEntity.ok(carroDTO) : ResponseEntity.notFound().build();
 	}
 
 	@DeleteMapping("/{id}")
-	public String delete(@PathVariable("id") Long id) {
-		service.deleteById(id);
-		return "Registro excluído com sucesso";
+	public ResponseEntity delete(@PathVariable("id") Long id) {
+		boolean ok = service.deleteById(id);
+		return ok ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
 	}
 }
