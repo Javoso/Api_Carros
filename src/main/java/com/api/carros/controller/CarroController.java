@@ -9,6 +9,7 @@ import javax.ws.rs.Produces;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,6 +34,7 @@ public class CarroController {
 	@GetMapping()
 	@Produces(MediaType.APPLICATION_JSON_VALUE)
 	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	@Secured({"ROLE_USER"})
 	public ResponseEntity<List<CarroDTO>> getCarros() {
 		return ResponseEntity.ok(service.getCarros());
 	}
@@ -40,13 +42,15 @@ public class CarroController {
 	@GetMapping("/{id}")
 	@Produces(MediaType.APPLICATION_JSON_VALUE)
 	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	@Secured({"ROLE_USER"})
 	public ResponseEntity<CarroDTO> getById(@PathVariable("id") Long id) {
-		return service.getById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+		return ResponseEntity.ok(service.getById(id));
 	}
 
 	@GetMapping("/tipo/{tipo}")
 	@Produces(MediaType.APPLICATION_JSON_VALUE)
 	@Consumes(MediaType.APPLICATION_JSON_VALUE)
+	@Secured({"ROLE_USER"})
 	public ResponseEntity<List<CarroDTO>> getCarrosByTipo(@PathVariable("tipo") String tipo) {
 		List<CarroDTO> carros = service.getCarrosByTipo(tipo);
 		return carros.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(carros);
@@ -55,14 +59,11 @@ public class CarroController {
 	@PostMapping
 	@Produces(MediaType.APPLICATION_JSON_VALUE)
 	@Consumes(MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity post(@RequestBody Carro carro) {
-		try {
-			CarroDTO carroDTO = service.save(carro);
-			URI location = getURL(carroDTO.getId());
-			return ResponseEntity.created(location).build();
-		} catch (Exception e) {
-			return ResponseEntity.badRequest().build();
-		}
+	@Secured({"ROLE_ADMIN"})
+	public ResponseEntity<CarroDTO> post(@RequestBody Carro carro) {
+		CarroDTO carroDTO = service.save(carro);
+		URI location = getURL(carroDTO.getId());
+		return ResponseEntity.created(location).build();
 	}
 
 	private URI getURL(Long id) {
@@ -72,14 +73,16 @@ public class CarroController {
 	@PutMapping("/{id}")
 	@Produces(MediaType.APPLICATION_JSON_VALUE)
 	@Consumes(MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity put(@PathVariable("id") Long id, @RequestBody Carro carro) {
+	@Secured({"ROLE_ADMIN"})
+	public ResponseEntity<CarroDTO> put(@PathVariable("id") Long id, @RequestBody Carro carro) {
 		CarroDTO carroDTO = service.update(id, carro);
 		return carroDTO != null ? ResponseEntity.ok(carroDTO) : ResponseEntity.notFound().build();
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity delete(@PathVariable("id") Long id) {
-		boolean ok = service.deleteById(id);
-		return ok ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+	@Secured({"ROLE_ADMIN"})
+	public ResponseEntity<CarroDTO> delete(@PathVariable("id") Long id) {
+		service.deleteById(id);
+		return ResponseEntity.ok().build();
 	}
 }

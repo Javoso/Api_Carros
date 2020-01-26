@@ -8,6 +8,7 @@ import org.modelmapper.internal.util.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.api.carros.exception.ObjectNotFoundException;
 import com.api.carros.model.Carro;
 import com.api.carros.model.dto.CarroDTO;
 import com.api.carros.respository.CarroRepository;
@@ -22,8 +23,9 @@ public class CarroService {
 		return repository.findAll().stream().map(CarroDTO::create).collect(Collectors.toList());
 	}
 
-	public Optional<CarroDTO> getById(Long id) {
-		return repository.findById(id).map(CarroDTO::create);
+	public CarroDTO getById(Long id) {
+		return repository.findById(id).map(CarroDTO::create)
+				.orElseThrow(() -> new ObjectNotFoundException("Carro não encontrado"));
 	}
 
 	public List<CarroDTO> getCarrosByTipo(String tipo) {
@@ -55,12 +57,8 @@ public class CarroService {
 		}
 	}
 
-	public boolean deleteById(Long id) {
-		if (getById(id).isPresent()) {
-			repository.deleteById(id);
-			return true;
-		}
-		return false;
+	public void deleteById(Long id) {
+		repository.deleteById(id);
 	}
 
 }
